@@ -5,7 +5,7 @@ using System.Collections.Generic;
 /// <summary>
 /// A Circular Buffer
 /// </summary>
-public class CircularBuffer<T> : IEnumerator<T>// : IEnumerable<T>
+public class CircularBuffer<T> : IEnumerator<T>
 {
     #region Fields
     /// <summary>
