@@ -241,8 +241,8 @@ public class CircularBuffer <T>
             return pos - 1;
         }
     }
-
     #endregion
+    
     #region Properties
     /// <summary>
     /// Get and Set the starting index of the Array
