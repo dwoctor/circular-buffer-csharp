@@ -1,25 +1,27 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 
 /// <summary>
 /// A Circular Buffer
 /// </summary>
-public class CircularBuffer <T>
+public class CircularBuffer<T> : IEnumerator<T>// : IEnumerable<T>
 {
     #region Fields
     /// <summary>
     /// Stores the Data
     /// </summary>
-    private T[] _array;
+    internal T[] _array;
 
     /// <summary>
     /// Stores the Index of where the array Starts
     /// </summary>
-    private Int32 _start;
+    internal Int32 _start;
 
     /// <summary>
     /// Stores the Index of where the array Ends
     /// </summary>
-    private Int32 _end;
+    internal Int32 _end;
 
     /// <summary>
     /// Stores the Number of Elements in the array
@@ -35,32 +37,33 @@ public class CircularBuffer <T>
     /// Indicates whether the array is Infinite
     /// </summary>
     private Boolean _isInfinite;
+
+    /// <summary>
+    /// Holds the Position
+    /// </summary>
+    /// <remarks>
+    /// Enumerators are positioned before the first element 
+    /// until the first MoveNext() call. 
+    /// </remarks>
+    Int32 _currentPosition = -1;
+
+    /// <summary>
+    /// The Number of Elements Processed
+    /// </summary>
+    Int32 _numOfElementsProcessed = 0;
     #endregion
 
     #region Constructors
     /// <summary>
     /// Constructs the Array
     /// </summary>
-    public CircularBuffer() : this(0, false, false) { }
+    public CircularBuffer() : this(0, true, false) { }
 
     /// <summary>
     /// Constructs the Array
     /// </summary>
     /// <param name="size">The Size of the Array</param>
-    public CircularBuffer(Int32 size) : this(size, false, false) { }
-
-    /// <summary>
-    /// Constructs the Array
-    /// </summary>
-    /// <param name="isSorted">Is the Array Sorted</param>
-    public CircularBuffer() : this(0, false, false) { }
-
-    /// <summary>
-    /// Constructs the Array
-    /// </summary>
-    /// <param name="size">The Size of the Array</param>
-    /// <param name="isSorted">Is the Array Sorted</param>
-    public CircularBuffer(Int32 size) : this(size, false, false) { }
+    public CircularBuffer(Int32 size) : this(size, true, false) { }
 
     /// <summary>
     /// Constructs the Array
@@ -198,7 +201,7 @@ public class CircularBuffer <T>
             _start = 0;
             _end = --end;
             _size = size;
-                
+
         }
         else
         {
@@ -241,8 +244,67 @@ public class CircularBuffer <T>
             return pos - 1;
         }
     }
+
+    void IDisposable.Dispose() { }
+
+    public bool MoveNext()
+    {
+        if (_currentPosition == -1)
+        {
+            _currentPosition = _start;
+            _numOfElementsProcessed++;
+        }
+        else
+        {
+            _currentPosition = GetNextPosition(_currentPosition);
+            _numOfElementsProcessed++;
+        }
+        return (_numOfElementsProcessed <= Size);
+    }
+
+    public void Reset()
+    {
+        _currentPosition = -1;
+        _numOfElementsProcessed = 0;
+    }
+
+    /// <summary>
+    /// Gets the Enumerator for the CircularBuffer
+    /// </summary>
+    /// <returns></returns>
+    public IEnumerator<T> GetEnumerator()
+    {
+        return this;
+    }
+
+    /// <summary>
+    /// Gets the Element in the array at the specified index
+    /// </summary>
+    /// <param name="index"></param>
+    /// <returns></returns>
+    public T this[Int32 index]
+    {
+        get
+        {
+            if (index >= _start && index <= _end)
+            {
+                return _array[index];
+            }
+            else
+            {
+                throw new Exception("Invalid Index");
+            }
+        }
+        set
+        {
+            if (index >= _start && index <= _end)
+            {
+                _array[index] = value;
+            }
+        }
+    }
     #endregion
-    
+
     #region Properties
     /// <summary>
     /// Get and Set the starting index of the Array
@@ -363,6 +425,35 @@ public class CircularBuffer <T>
         get
         {
             return _size == Capacity;
+        }
+    }
+
+    /// <summary>
+    /// Gets the Enumerator of Current Element in the Array
+    /// </summary>
+    object IEnumerator.Current
+    {
+        get
+        {
+            return Current;
+        }
+    }
+
+    /// <summary>
+    /// Gets the Current Element in the Array
+    /// </summary>
+    public T Current
+    {
+        get
+        {
+            try
+            {
+                return _array[_currentPosition];
+            }
+            catch (IndexOutOfRangeException)
+            {
+                throw new InvalidOperationException();
+            }
         }
     }
     #endregion
