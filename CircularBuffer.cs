@@ -45,12 +45,12 @@ public class CircularBuffer<T> : IEnumerator<T>
     /// Enumerators are positioned before the first element 
     /// until the first MoveNext() call. 
     /// </remarks>
-    Int32 _currentPosition = -1;
+    private Int32 _currentPosition = -1;
 
     /// <summary>
     /// The Number of Elements Processed
     /// </summary>
-    Int32 _numOfElementsProcessed = 0;
+    private Int32 _numOfElementsProcessed = 0;
     #endregion
 
     #region Constructors
@@ -92,13 +92,21 @@ public class CircularBuffer<T> : IEnumerator<T>
             if (_size != 0)
             {
                 _start = GetPreviousPosition(_start);
+                if (_start == _end)
+                {
+                    _end = GetNextPosition(_end);
+                }
+                else
+                {
+                    _size++;
+                }
             }
             else
             {
                 _start = 0;
+                _size++;
             }
             _array[_start] = data;
-            _size++;
         }
         else if (_isDynamic)
         {
@@ -121,13 +129,21 @@ public class CircularBuffer<T> : IEnumerator<T>
             if (_size != 0)
             {
                 _end = GetNextPosition(_end);
+                if (_start == _end)
+                {
+                    _start = GetNextPosition(_start);
+                }
+                else
+                {
+                    _size++;
+                }
             }
             else
             {
                 _end = 0;
+                _size++;
             }
             _array[_end] = data;
-            _size++;
         }
         else if (_isDynamic)
         {
@@ -245,7 +261,11 @@ public class CircularBuffer<T> : IEnumerator<T>
         }
     }
 
-    void IDisposable.Dispose() { }
+    void IDisposable.Dispose()
+    {
+        _currentPosition = -1;
+        _numOfElementsProcessed = 0;
+    }
 
     public bool MoveNext()
     {
@@ -264,8 +284,9 @@ public class CircularBuffer<T> : IEnumerator<T>
 
     public void Reset()
     {
-        _currentPosition = -1;
-        _numOfElementsProcessed = 0;
+        _start = 0;
+        _end = 0;
+        _size = 0;
     }
 
     /// <summary>
@@ -281,14 +302,19 @@ public class CircularBuffer<T> : IEnumerator<T>
     /// Gets the Element in the array at the specified index
     /// </summary>
     /// <param name="index"></param>
-    /// <returns></returns>
+    /// <returns>An Object</returns>
     public T this[Int32 index]
     {
         get
         {
-            if (index >= _start && index <= _end)
+            if (index >= 0 && index < _size)
             {
-                return _array[index];
+                Int32 iBuffer = _start;
+                for (Int32 incremented = 0; incremented < index; incremented++)
+                {
+                    iBuffer = GetNextPosition(iBuffer);
+                }
+                return _array[iBuffer];
             }
             else
             {
@@ -297,11 +323,51 @@ public class CircularBuffer<T> : IEnumerator<T>
         }
         set
         {
-            if (index >= _start && index <= _end)
+            if (index >= 0 && index <= _size)
             {
-                _array[index] = value;
+                Int32 iBuffer = _start;
+                for (Int32 incremented = 0; incremented < index; incremented++)
+                {
+                    iBuffer++;
+                }
+                _array[iBuffer] = value;
+            }
+            else
+            {
+                throw new Exception("Invalid Index");
             }
         }
+    }
+
+    /// <summary>
+    /// Converts the Circular Buffer to an Array
+    /// </summary>
+    /// <returns>An Array</returns>
+    public T[] ToArray()
+    {
+        Int32 numOfElementsProcessed = 0;
+        T[] array = new T[_size];
+        Int32 iOutputArray = 0;
+        for (Int32 iBuffer = _start; numOfElementsProcessed < _size; iBuffer = GetNextPosition(iBuffer), numOfElementsProcessed++, iOutputArray++)
+        {
+            array[iOutputArray] = _array[iBuffer];
+        }
+        return array;
+    }
+
+    /// <summary>
+    /// Converts the Circular Buffer to a List
+    /// </summary>
+    /// <returns>A List</returns>
+    public List<T> ToList()
+    {
+        Int32 numOfElementsProcessed = 0;
+        List<T> list = new List<T>();
+        for (Int32 iBuffer = _start; numOfElementsProcessed < _size; iBuffer = GetNextPosition(iBuffer), numOfElementsProcessed++)
+        {
+            list.Add(_array[iBuffer]);
+        }
+        return list;
     }
     #endregion
 
@@ -392,7 +458,7 @@ public class CircularBuffer<T> : IEnumerator<T>
     }
 
     /// <summary>
-    /// Gaet and Set the Array to being Infinite
+    /// Get and Set the Array to being Infinite
     /// </summary>
     public Boolean IsInfinite
     {
